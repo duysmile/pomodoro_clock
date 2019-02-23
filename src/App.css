@@ -1,0 +1,32 @@
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-header button {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0 10px;
+    color: white;
+}
+
+.title--transform-upper {
+    text-transform: uppercase;
+}
+
+.clock--border {
+    border: solid 3px white;
+    border-radius: 30px 30px;
+}
+
+.clock--font-size{
+    font-size: 55px;
+    letter-spacing: 5px;
+}
