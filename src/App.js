@@ -15,51 +15,40 @@ const STOP = 'stopped';
 class IncrementDecrement extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      time: props.time ? props.time : 0
-    };
     this.increment = this.increment.bind(this);
     this.decrement = this.decrement.bind(this);
   }
 
   increment() {
-    if (this.state.time === MAX_TIME) {
+    if (this.props.time === MAX_TIME) {
       return;
     }
-    this.setState((prevState) => {
-      return {
-        time: prevState.time + 1
-      }
-    });
     this.props.onChangeTime(INCREASE, this.props.type);
   }
 
   decrement() {
-    if (this.state.time === MIN_TIME) {
+    if (this.props.time === MIN_TIME) {
       return;
     }
-    this.setState((prevState) => {
-      return {
-        time: prevState.time - 1
-      }
-    });
     this.props.onChangeTime(DECREASE, this.props.type);
   }
 
   render() {
     return (
-      <div className="d-flex flex-column align-items-center m-3">
+      <div id={this.props.id + '-label'} className="d-flex flex-column align-items-center m-3">
         <p>
           <strong className="title--transform-upper">
             {this.props.displayLabel}
           </strong>
         </p>
         <div className="d-flex">
-          <button onClick={this.decrement}>
+          <button id={this.props.id + '-decrement'} onClick={this.decrement}>
             <i className="fa fa-arrow-down"></i>
           </button>
-          {this.state.time}
-          <button onClick={this.increment}>
+          <span id={this.props.id + '-length'}>
+            {this.props.time}
+          </span>
+          <button id={this.props.id + '-increment'} onClick={this.increment}>
             <i className="fa fa-arrow-up"></i>
           </button>
         </div>
@@ -69,13 +58,27 @@ class IncrementDecrement extends Component {
 }
 
 class Clock extends Component {
+  constructor(props) {
+    super(props);
+    this.warningTime = this.warningTime.bind(this);
+  }
+  warningTime() {
+    if (this.props.timeLeft < 60) {
+      return {
+        color: 'red'
+      };
+    }
+  }
   render() {
     return (
-      <div className="mt-3 py-3 px-5 d-flex flex-column justify-content-center align-items-center clock--border">
-        <strong>
+      <div
+        style={this.warningTime()}
+        className="mt-3 py-3 px-5 d-flex flex-column justify-content-center align-items-center clock--border"
+      >
+        <strong id='timer-label'>
           {this.props.type}
         </strong>
-        <span className="clock--font-size">
+        <span id='time-left' className="clock--font-size">
           {this.props.time}
         </span>
       </div>
@@ -87,18 +90,21 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      session: 5,
+      session: 25,
       break: 5,
-      timer: 300,
+      timer: 1500,
       type: SESSION,
-      status: STOP
+      status: STOP,
+      intervalId: ''
     };
     this.changeBreak = this.changeBreak.bind(this);
     this.displayTime = this.displayTime.bind(this);
+    this.countDown = this.countDown.bind(this);
+    this.resetTimer = this.resetTimer.bind(this);
   }
 
   displayTime() {
-    let minutes = Math.round(this.state.timer / 60);
+    let minutes = Math.floor(this.state.timer / 60);
     let seconds = this.state.timer - minutes * 60;
     if (minutes < 10) {
       minutes = '0' + minutes;
@@ -110,12 +116,57 @@ class App extends Component {
   }
 
   countDown() {
-    if (this.status.status === STOP) {
-
+    if (this.state.status === STOP && this.state.timer > 0) {
+      const intervalId = setInterval(() => {
+        if (this.state.timer === 0) {
+          this.audioBeep.play();
+        }
+        this.setState((prevState) => {
+          let type = prevState.type;
+          let timer = prevState.timer;
+          if (prevState.timer === 0) {
+            type = type === SESSION ? BREAK : SESSION;
+            timer = type === SESSION ? prevState.session * 60 : prevState.break * 60
+          } else {
+            timer = timer - 1;
+          }
+          return {
+            timer: timer,
+            type: type
+          };
+        })
+      }, 1000);
+      this.setState({
+        intervalId: intervalId,
+        status: PLAY
+      })
+    } else if (this.state.status === PLAY) {
+      clearInterval(this.state.intervalId);
+      this.setState({
+        intervalId: '',
+        status: STOP
+      });
     }
   }
 
+  resetTimer() {
+    clearInterval(this.state.intervalId);
+    this.setState({
+      session: 25,
+      break: 5,
+      timer: 1500,
+      type: SESSION,
+      status: STOP,
+      intervalId: ''
+    });
+    this.audioBeep.pause();
+    this.audioBeep.currentTime = 0;
+  }
+
   changeBreak(option, state) {
+    if (this.state.status === PLAY) {
+      return;
+    }
     let timer = this.state.timer;
     let breakTime = this.state.break;
     let sessionTime = this.state.session;
@@ -152,26 +203,32 @@ class App extends Component {
             time={this.state.break}
             onChangeTime={this.changeBreak}
             type={BREAK}
+            id='break'
           />
           <IncrementDecrement
             displayLabel="Session Length"
             time={this.state.session}
             onChangeTime={this.changeBreak}
             type={SESSION}
+            id='session'
           />
         </div>
-        <Clock type={this.state.type} time={this.displayTime()}/>
+        <Clock timeLeft={this.state.timer} type={this.state.type} time={this.displayTime()}/>
         <div className="mt-2">
-          <button>
+          <button id='start_stop' onClick={this.countDown}>
             <i className="fa fa-play"></i>
-          </button>
-          <button>
             <i className="fa fa-pause"></i>
           </button>
-          <button>
+          <button id='reset' onClick={this.resetTimer}>
             <i className="fa fa-refresh"></i>
           </button>
         </div>
+        <audio
+          preload="auto"
+          src="https://goo.gl/65cBl1"
+          ref={(audio) => {this.audioBeep = audio}}
+        >
+        </audio>
       </div>
     );
   }
